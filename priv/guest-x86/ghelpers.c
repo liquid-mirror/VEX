@@ -853,6 +853,16 @@ IRExpr* guest_x86_spechelper ( HChar* function_name,
                      binop(Iop_CmpLE32S, cc_dep1, cc_dep2));
       }
 
+      if (isU32(cc_op, X86G_CC_OP_SUBL) && isU32(cond, X86CondNLE)) {
+         /* long sub/cmp, then LE (signed not less than or equal)
+            --> test dst >s src 
+            --> test !(dst <=s src) */
+         return binop(Iop_Xor32,
+                      unop(Iop_1Uto32,
+                           binop(Iop_CmpLE32S, cc_dep1, cc_dep2)),
+                      mkU32(1));
+      }
+
       if (isU32(cc_op, X86G_CC_OP_SUBL) && isU32(cond, X86CondBE)) {
          /* long sub/cmp, then BE (unsigned less than or equal)
             --> test dst <=u src */
@@ -1054,6 +1064,16 @@ IRExpr* guest_x86_spechelper ( HChar* function_name,
       if (isU32(cc_op, X86G_CC_OP_DECL) && isU32(cond, X86CondS)) {
          /* dec L, then S --> compare DST <s 0 */
          return unop(Iop_1Uto32,binop(Iop_CmpLT32S, cc_dep1, mkU32(0)));
+      }
+
+      /*---------------- DECW ----------------*/
+
+      if (isU32(cc_op, X86G_CC_OP_DECW) && isU32(cond, X86CondZ)) {
+         /* dec W, then Z --> test dst == 0 */
+         return unop(Iop_1Uto32,
+                     binop(Iop_CmpEQ32, 
+                           binop(Iop_Shl32,cc_dep1,mkU8(16)), 
+                           mkU32(0)));
       }
 
       /*---------------- INCW ----------------*/
